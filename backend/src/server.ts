@@ -2,8 +2,8 @@ import { app } from './app.js';
 import { config } from './config.js';
 import { prisma } from './db.js';
 
-const server = app.listen(config.PORT, () => {
-  console.log(`YIRS Revenue API listening on http://localhost:${config.PORT}`);
+const server = app.listen(config.PORT, '127.0.0.1', () => {
+  console.log(`YIRS Revenue API listening on http://127.0.0.1:${config.PORT}`);
 });
 
 async function shutdown() {
