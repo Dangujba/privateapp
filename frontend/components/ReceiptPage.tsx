@@ -1,0 +1,13 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, CheckCircle, Printer } from 'lucide-react';
+import { api, apiError, type PaymentRecord } from '@/lib/api';
+
+type Receipt = { receiptNumber:string; issuedAt:string; payment:PaymentRecord; snapshot:Record<string,string> };
+export default function ReceiptPage({ id, portal }: { id:string; portal:'individual'|'business' }) {
+ const [receipt,setReceipt]=useState<Receipt|null>(null); const [error,setError]=useState(''); const base=portal==='business'?'/dashboard/business':'/dashboard/taxpayer';
+ useEffect(()=>{api.getReceipt(id).then(x=>setReceipt(x.receipt)).catch(e=>setError(apiError(e,'Could not load receipt')));},[id]);
+ return <main className="min-h-screen p-6"><div className="mx-auto max-w-2xl"><div className="mb-6 flex justify-between print:hidden"><Link href={`${base}/transactions`} className="inline-flex items-center text-gray-600"><ArrowLeft className="mr-2 h-4 w-4"/>Transactions</Link><button onClick={()=>window.print()} className="btn-secondary inline-flex items-center gap-2"><Printer className="h-4 w-4"/>Print</button></div>{error&&<p className="rounded-xl bg-red-50 p-4 text-red-700">{error}</p>}{receipt&&<article className="glass-card p-8"><div className="mb-8 text-center"><CheckCircle className="mx-auto mb-3 h-14 w-14 text-green-500"/><p className="text-sm font-semibold uppercase tracking-wider text-primary-600">YIRS Revenue System</p><h1 className="text-2xl font-bold">Blockchain Revenue Payment Receipt</h1><p className="text-gray-500">{receipt.receiptNumber}</p></div><dl className="space-y-3"><Row label="Payment reference" value={receipt.payment.transactionNumber}/><Row label="Revenue type" value={receipt.payment.taxType.replaceAll('_',' ')}/><Row label="Period" value={receipt.payment.taxPeriod||'—'}/><Row label="Amount" value={`₦${receipt.payment.amountNgn.toLocaleString()}`}/><Row label="TON equivalent" value={`${receipt.payment.amountTon.toFixed(6)} TON`}/><Row label="Confirmed" value={receipt.payment.confirmedAt?new Date(receipt.payment.confirmedAt).toLocaleString():'—'}/><Row label="Transaction hash" value={receipt.payment.txHash??'Unavailable'} mono/></dl><p className="mt-8 text-xs text-gray-500">This receipt records a server-verified TON transaction processed by the YIRS Blockchain Revenue System.</p></article>}</div></main>
+}
+function Row({label,value,mono=false}:{label:string;value:string;mono?:boolean}){return <div className="grid grid-cols-[150px_1fr] gap-4 border-b pb-3"><dt className="text-gray-500">{label}</dt><dd className={`text-right font-medium capitalize ${mono?'break-all font-mono text-xs':''}`}>{value}</dd></div>}

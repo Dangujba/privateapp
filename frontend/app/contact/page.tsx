@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function ContactPage() { return <main className="min-h-screen p-6"><article className="glass-card mx-auto max-w-2xl space-y-5 p-8"><Link href="/" className="text-primary-600">← Home</Link><h1 className="text-3xl font-bold">YIRS Revenue System Contact</h1><p>For system support, use the contact information configured by the administrator.</p></article></main>; }

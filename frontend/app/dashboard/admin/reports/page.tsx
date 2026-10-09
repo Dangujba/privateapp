@@ -1,0 +1,14 @@
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../../../providers';
+import { api, apiError, type RevenueReport, type RevenueRow } from '@/lib/api';
+
+export default function AdminReportsPage(){
+ const {token}=useAuth(); const [report,setReport]=useState<RevenueReport|null>(null); const [period,setPeriod]=useState('monthly'); const [year,setYear]=useState(new Date().getFullYear()); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
+ const load=useCallback(async()=>{try{setLoading(true);setError('');setReport((await api.getRevenueReport({period,year})).report);}catch(e){setError(apiError(e,'Could not load report'));}finally{setLoading(false)}},[period,year]);
+ useEffect(()=>{if(token) void load();},[token,load]);
+ const totalRevenue=report?.data.reduce((s:number,r:RevenueRow)=>s+r.totalRevenueNgn,0)||0; const totalTx=report?.data.reduce((s:number,r:RevenueRow)=>s+r.transactionCount,0)||0; const totalTon=report?.data.reduce((s:number,r:RevenueRow)=>s+r.totalTon,0)||0;
+ if(loading)return <div className="flex items-center justify-center py-20"><div className="spinner h-12 w-12"/></div>;
+ return <div className="p-6">{error&&<p className="mb-6 rounded-xl bg-red-50 p-4 text-red-700">{error}</p>}<div className="mb-6 grid gap-6 md:grid-cols-3"><Stat label={`YIRS Revenue (${year})`} value={`₦${totalRevenue.toLocaleString()}`}/><Stat label="Transactions" value={totalTx.toLocaleString()}/><Stat label="TON Processed" value={totalTon.toFixed(4)}/></div><div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-800"><div className="mb-6 flex gap-4"><select value={period} onChange={e=>setPeriod(e.target.value)} className="input-primary max-w-xs"><option value="daily">Daily</option><option value="monthly">Monthly</option></select><select value={year} onChange={e=>setYear(parseInt(e.target.value))} className="input-primary max-w-xs">{[2024,2025,2026,2027].map(y=><option key={y}>{y}</option>)}</select></div><div className="overflow-x-auto"><table className="w-full"><thead><tr><th className="table-header">Period</th><th className="table-header">Transactions</th><th className="table-header">Revenue (₦)</th><th className="table-header">TON</th></tr></thead><tbody>{report?.data.map((r,i)=><tr key={i}><td className="table-cell">{r.label}</td><td className="table-cell">{r.transactionCount}</td><td className="table-cell font-bold">₦{r.totalRevenueNgn.toLocaleString()}</td><td className="table-cell">{r.totalTon.toFixed(4)}</td></tr>)}</tbody></table>{(!report?.data.length)&&<p className="p-8 text-center text-gray-500">No data for this period.</p>}</div></div></div>
+}
+function Stat({label,value}:{label:string;value:string}){return <div className="rounded-2xl bg-white p-6 dark:bg-gray-800"><p className="mb-2 text-gray-500">{label}</p><p className="text-3xl font-bold">{value}</p></div>}

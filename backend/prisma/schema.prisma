@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  role            String           @default("individual")
+  isActive        Boolean          @default(true)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  taxpayerProfile TaxpayerProfile?
+  businessProfile BusinessProfile?
+  wallets         VerifiedWallet[]
+  paymentIntents  PaymentIntent[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]        @relation("AuditActor")
+  accountTokens   AccountToken[]
+}
+
+model AccountToken {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TaxpayerProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  tin              String   @unique
+  fullName         String
+  address          String?
+  verified         Boolean  @default(false)
+  complianceStatus String   @default("pending")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BusinessProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  tin              String   @unique
+  businessName     String
+  category         String
+  address          String?
+  verified         Boolean  @default(false)
+  complianceStatus String   @default("pending")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerifiedWallet {
+  id                String   @id @default(cuid())
+  userId            String
+  address            String   @unique
+  network            String
+  publicKey          String?
+  walletStateInit    String?
+  proofVerifiedAt    DateTime
+  createdAt          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WalletChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  nonceHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PaymentIntent {
+  id                    String                 @id @default(cuid())
+  referenceId           String                 @unique
+  idempotencyKey        String                 @unique
+  transactionNumber     String                 @unique
+  userId                String
+  senderAddress         String
+  taxType               String
+  taxPeriod             String?
+  description           String?
+  amountKobo            BigInt
+  exchangeRateKobo      BigInt
+  exchangeRateSource    String
+  exchangeRateTimestamp DateTime
+  amountNanoton         BigInt
+  gasNanoton            BigInt
+  payloadBoc            String
+  payloadHash           String                 @unique
+  walletBocHash         String?                @unique
+  status                String                 @default("created")
+  expiresAt             DateTime
+  createdAt             DateTime               @default(now())
+  submittedAt           DateTime?
+  confirmedAt           DateTime?
+  updatedAt             DateTime               @updatedAt
+  user                   User                   @relation(fields: [userId], references: [id])
+  blockchainTransaction BlockchainTransaction?
+  receipt                PaymentReceipt?
+}
+
+model BlockchainTransaction {
+  id                String        @id @default(cuid())
+  paymentIntentId   String        @unique
+  transactionHash   String        @unique
+  logicalTime       String
+  blockReference    String?
+  sender            String
+  recipient         String
+  valueNanoton      BigInt
+  decodedPayload    String
+  success           Boolean
+  timestamp         DateTime
+  networkFeeNanoton BigInt?
+  confirmations     Int           @default(0)
+  raw               String?
+  createdAt         DateTime      @default(now())
+  paymentIntent     PaymentIntent @relation(fields: [paymentIntentId], references: [id])
+}
+
+model PaymentReceipt {
+  id              String        @id @default(cuid())
+  paymentIntentId String        @unique
+  receiptNumber   String        @unique
+  issuedAt        DateTime      @default(now())
+  snapshot        String
+  paymentIntent   PaymentIntent @relation(fields: [paymentIntentId], references: [id])
+}
+
+model ExchangeRate {
+  id          String   @id @default(cuid())
+  tonNgnKobo  BigInt
+  source      String
+  observedAt  DateTime
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model SmartContractDeployment {
+  id              String   @id @default(cuid())
+  contractType    String
+  network         String
+  address         String?  @unique
+  deploymentBoc   String?
+  transactionHash String?  @unique
+  status          String   @default("prepared")
+  initialParams   String
+  createdAt       DateTime @default(now())
+  deployedAt      DateTime?
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  sensitive Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,13 @@
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { api, apiError, type PaymentRecord } from '@/lib/api';
+
+export default function TransactionsPage({ portal }: { portal: 'individual' | 'business' }) {
+  const [payments, setPayments] = useState<PaymentRecord[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
+  const base=portal==='business'?'/dashboard/business':'/dashboard/taxpayer';
+  const load=useCallback(async()=>{setLoading(true);setError('');try{setPayments((await api.getPayments({limit:100})).payments);}catch(e){setError(apiError(e,'Could not load payment history'));}finally{setLoading(false);}},[]);
+  useEffect(()=>{void load();},[load]);
+  return <main className="min-h-screen p-6"><div className="mx-auto max-w-6xl"><Link href={base} className="mb-6 inline-flex items-center text-gray-600"><ArrowLeft className="mr-2 h-4 w-4"/>Dashboard</Link><div className="mb-6 flex items-center justify-between"><div><h1 className="text-2xl font-bold">Payment History</h1><p className="text-gray-500">Your submitted and confirmed YIRS revenue payments.</p></div><button onClick={()=>void load()} className="btn-secondary inline-flex items-center gap-2"><RefreshCw className="h-4 w-4"/>Refresh</button></div>{error&&<p className="mb-4 rounded-xl bg-red-50 p-4 text-red-700">{error}</p>}<div className="glass-card overflow-x-auto"><table className="w-full min-w-[820px]"><thead><tr><th className="table-header">Reference</th><th className="table-header">Revenue Type</th><th className="table-header">Period</th><th className="table-header">Amount</th><th className="table-header">Status</th><th className="table-header">Date</th><th className="table-header">Receipt</th></tr></thead><tbody>{payments.map(p=><tr key={p.id}><td className="table-cell font-mono text-xs">{p.transactionNumber}</td><td className="table-cell capitalize">{p.taxType.replaceAll('_',' ')}</td><td className="table-cell">{p.taxPeriod||'—'}</td><td className="table-cell font-semibold">₦{p.amountNgn.toLocaleString()}</td><td className="table-cell"><span className={`badge ${p.status==='confirmed'?'badge-success':p.status==='failed'?'badge-error':'badge-warning'}`}>{p.status.replaceAll('_',' ')}</span></td><td className="table-cell">{new Date(p.createdAt).toLocaleString()}</td><td className="table-cell">{p.status==='confirmed'?<Link className="text-primary-600" href={`${base}/receipts/${p.id}`}>View</Link>:'—'}</td></tr>)}</tbody></table>{!loading&&payments.length===0&&<p className="p-10 text-center text-gray-500">No payments yet.</p>}{loading&&<p className="p-10 text-center text-gray-500">Loading…</p>}</div></div></main>
+}

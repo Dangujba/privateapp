@@ -1,0 +1,27 @@
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+.runtime/
+.idea/
+.vscode/
+.DS_Store
+contracts/build/
+contracts/temp/
+docs/evaluation-results/*.csv
+!docs/evaluation-results/.gitkeep
+# Local TON/deployment evidence and sensitive artifacts
+docs/evaluation-results/testnet-deployment.json
+docs/evaluation-results/testnet-environment.json
+*.pem
+*.key
